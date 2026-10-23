@@ -31,7 +31,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^24.13.5",
+    "@types/node": "^24.19.2",
     "@types/nodemailer": "^7.0.1",
     "@types/pdfkit": "^0.17.6",
     "prisma": "^6.16.0",
