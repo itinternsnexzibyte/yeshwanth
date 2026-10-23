@@ -1,0 +1,11 @@
+backend/.env
+backend/node_modules/
+backend/dist/
+backend/backups/*.backup
+frontend/node_modules/
+frontend/dist/
+voice-service/.venv/
+voice-service/generated_audio/
+voice-service/__pycache__/
+voice-service/.env
+*.log

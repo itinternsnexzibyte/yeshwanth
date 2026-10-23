@@ -1,0 +1,60 @@
+openapi: 3.0.3
+info:
+  title: NexziByte Quotation Management API
+  version: 2.7.0
+  description: Secure internal API using HttpOnly session cookies, RBAC and CSRF protection.
+servers:
+  - url: http://localhost:4000/api
+paths:
+  /health:
+    get: { summary: Service health, responses: { "200": { description: Healthy } } }
+  /auth/login:
+    post: { summary: Sign in, responses: { "200": { description: Authenticated }, "401": { description: Invalid credentials or locked account } } }
+  /auth/logout:
+    post: { summary: Sign out, responses: { "204": { description: Signed out } } }
+  /auth/me:
+    get: { summary: Current user, responses: { "200": { description: User profile } } }
+  /account/profile:
+    get: { summary: Current profile and profile-image state, responses: { "200": { description: Profile } } }
+  /account/profile-image:
+    get: { summary: Read authenticated profile image, responses: { "200": { description: Image } } }
+    put: { summary: Upload PNG, JPG or WebP profile image up to 2 MB, responses: { "200": { description: Profile updated } } }
+  /account/password:
+    put: { summary: Change password after current-password verification, responses: { "200": { description: Password changed } } }
+  /customers:
+    get: { summary: List customers and contacts, responses: { "200": { description: Customer list } } }
+    post: { summary: Create customer, responses: { "201": { description: Customer created } } }
+  /products:
+    get: { summary: List products and approved prices, responses: { "200": { description: Product list } } }
+    post: { summary: Create product and price, responses: { "201": { description: Product created } } }
+  /pricing-rules:
+    get: { summary: List pricing rules, responses: { "200": { description: Rule list } } }
+    post: { summary: Create pricing rule, responses: { "201": { description: Rule created } } }
+  /quotations/preview:
+    post: { summary: Calculate authoritative totals without saving, responses: { "200": { description: Decimal totals } } }
+  /quotations:
+    get: { summary: Search quotation register, responses: { "200": { description: Quotation list } } }
+    post: { summary: Save numbered quotation and snapshots, responses: { "201": { description: Quotation created } } }
+  /quotations/{id}/preview:
+    get:
+      summary: Render final-format PDF preview without changing status
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: PDF preview } }
+  /quotations/{id}/pdf:
+    get:
+      summary: Generate authoritative PDF
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: PDF document } }
+  /quotations/{id}/docx:
+    get:
+      summary: Generate editable Word document
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: DOCX document } }
+  /reports/summary:
+    get: { summary: Customer, product and status summaries, responses: { "200": { description: Report data } } }
+  /reports/quotation-register.csv:
+    get: { summary: Export date-wise register, responses: { "200": { description: UTF-8 CSV } } }
+  /audit-logs:
+    get: { summary: Filter audit events, responses: { "200": { description: Audit entries } } }
+  /integration/health:
+    get: { summary: Payroll composition boundary, responses: { "200": { description: Integration contract } } }

@@ -1,0 +1,8 @@
+node_modules/
+.env
+dist/
+backend/storage/pdfs/*.pdf
+backend/storage/docx/*.docx
+!backend/storage/pdfs/.gitkeep
+!backend/storage/docx/.gitkeep
+*.log

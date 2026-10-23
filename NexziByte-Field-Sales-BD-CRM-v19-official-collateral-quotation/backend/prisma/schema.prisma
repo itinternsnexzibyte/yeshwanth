@@ -1,0 +1,833 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  SALES_HEAD
+  BD_MANAGER
+  SALES_BD_EXECUTIVE
+  TECHNICAL_TEAM
+  MANAGEMENT_VIEWER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ActivityStatus {
+  TRAVELLING
+  REACHED_COMPANY
+  WAITING_FOR_CONTACT
+  MEETING_IN_PROGRESS
+  REQUIREMENT_DISCUSSION
+  FOLLOW_UP_DISCUSSION
+  BREAK
+  VISIT_COMPLETED
+}
+
+enum ProjectRequired {
+  YES
+  NO
+  MAYBE
+  COLLABORATION
+}
+
+enum DecisionMakerStatus {
+  YES
+  PARTIAL
+  NO
+}
+
+enum LeadQuality {
+  HOT
+  WARM
+  COLD
+  NOT_QUALIFIED
+  NEGATIVE
+}
+
+enum VisitStatus {
+  OPEN
+  COMPLETED
+  CANCELLED
+}
+
+enum LocationKind {
+  CHECK_IN
+  CHECK_OUT
+}
+
+enum PhotoType {
+  COMPANY
+  MEETING
+  SELFIE
+}
+
+enum OpportunityStage {
+  NEW
+  REQUIREMENT_COLLECTED
+  DISCUSSION
+  DEMO
+  PROPOSAL
+  QUOTATION
+  NEGOTIATION
+  DECISION_PENDING
+  WON
+  LOST
+}
+
+enum FollowUpType {
+  CALL
+  EMAIL
+  WHATSAPP
+  F2F
+  TEAMS
+  ZOOM
+  DEMO
+  QUOTATION_FOLLOWUP
+  PAYMENT_FOLLOWUP
+}
+
+enum FollowUpStatus {
+  PENDING_ACCEPTANCE
+  ACCEPTED
+  SCHEDULED
+  COMPLETED
+  RESCHEDULED
+  NO_RESPONSE
+  CLIENT_NOT_AVAILABLE
+  INTERESTED
+  NOT_INTERESTED
+  WAITING_FOR_DECISION
+  CLOSED
+}
+
+enum BookingStatus {
+  OPEN
+  BOOKED
+  EXPIRED
+  CANCELLED
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  BOUNCED
+  FAILED
+}
+
+enum AiCallStatus {
+  QUEUED
+  INITIATED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+}
+
+enum QuotationStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  CLIENT_REVIEW
+  REVISION_REQUESTED
+  ACCEPTED
+  REJECTED
+}
+
+enum QuotationDecision {
+  PENDING
+  YES
+  NO
+  MAYBE
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  name            String
+  passwordHash    String
+  emailVerified   Boolean        @default(true)
+  emailVerifiedAt DateTime?
+  role            RoleName
+  requestedRole   RoleName?
+  phone           String?
+  profilePhotoUrl String?
+  approvalStatus  ApprovalStatus @default(PENDING)
+  isActive        Boolean        @default(false)
+  isSalesTeam     Boolean        @default(false)
+  approvedAt      DateTime?
+  approvedById    String?
+  rejectionReason String?
+  managerId       String?
+  manager         User?          @relation("TeamManager", fields: [managerId], references: [id])
+  teamMembers     User[]         @relation("TeamManager")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  refreshTokens          RefreshToken[]
+  visits                 Visit[]
+  assignedFollowups      FollowUp[]              @relation("FollowUpAssignee")
+  ownedFollowups         FollowUp[]              @relation("FollowUpOwner")
+  delegatedFollowups     FollowUp[]              @relation("FollowUpDelegatee")
+  completedFollowups     FollowUp[]              @relation("FollowUpCompleter")
+  auditLogs              AuditLog[]
+  assignmentsReceived    WorkAssignment[]        @relation("AssignedTo")
+  assignmentsCreated     WorkAssignment[]        @relation("AssignedBy")
+  hourlyActivities       HourlyActivity[]
+  emailVerificationCodes EmailVerificationCode[]
+  passwordResetCodes     PasswordResetCode[]
+  notifications          Notification[]
+}
+
+model EmailVerificationCode {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model PasswordResetCode {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Industry {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  companies Company[]
+}
+
+model LeadSource {
+  id     String  @id @default(uuid())
+  name   String  @unique
+  visits Visit[]
+}
+
+model ProjectType {
+  id   String @id @default(uuid())
+  name String @unique
+}
+
+model Company {
+  id              String    @id @default(uuid())
+  name            String
+  city            String?
+  phone           String?
+  phoneNormalized String?
+  email           String?
+  website         String?
+  photoUrl        String?
+  industryId      String?
+  industry        Industry? @relation(fields: [industryId], references: [id])
+
+  addresses     CompanyAddress[]
+  contacts      Contact[]
+  visits        Visit[]
+  leads         Lead[]
+  requirements  Requirement[]
+  opportunities Opportunity[]
+  followups     FollowUp[]
+  emails        EmailLog[]
+  activities    ActivityLog[]
+  assignments   WorkAssignment[]
+  aiCalls       AiCallLog[]
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  @@index([name])
+  @@index([phoneNormalized])
+  @@index([industryId])
+}
+
+model CompanyDuplicateAttempt {
+  id                 String   @id @default(uuid())
+  attemptedName      String
+  attemptedPhone     String
+  normalizedPhone    String
+  matchedCompanyId   String?
+  matchedCompanyName String?
+  createdById        String
+  createdByName      String
+  status             String   @default("BLOCKED")
+  createdAt          DateTime @default(now())
+
+  @@index([normalizedPhone, createdAt])
+  @@index([createdAt])
+}
+
+model CompanyAddress {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  addressLine String
+  city        String
+  state       String?
+  pincode     String?
+  latitude    Decimal?
+  longitude   Decimal?
+
+  @@index([companyId])
+}
+
+model Contact {
+  id          String  @id @default(uuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  designation String?
+  phone       String?
+  email       String?
+
+  visits    Visit[]
+  followups FollowUp[]
+  emails    EmailLog[]
+  aiCalls   AiCallLog[]
+
+  @@index([companyId])
+}
+
+model Visit {
+  id           String          @id @default(uuid())
+  companyId    String
+  company      Company         @relation(fields: [companyId], references: [id])
+  contactId    String?
+  contact      Contact?        @relation(fields: [contactId], references: [id])
+  userId       String
+  user         User            @relation(fields: [userId], references: [id])
+  assignmentId String?
+  assignment   WorkAssignment? @relation(fields: [assignmentId], references: [id])
+
+  visitDate       DateTime  @default(now())
+  checkInAt       DateTime  @default(now())
+  checkOutAt      DateTime?
+  durationMinutes Int?
+
+  leadSourceId String?
+  leadSource   LeadSource? @relation(fields: [leadSourceId], references: [id])
+
+  meetingType  String?
+  visitPurpose String?
+
+  projectRequired     ProjectRequired?
+  decisionMakerStatus DecisionMakerStatus?
+  leadQuality         LeadQuality?
+
+  budgetDiscussed Boolean?
+  budgetMin       Decimal?
+  budgetMax       Decimal?
+
+  status                 VisitStatus @default(OPEN)
+  remarks                String?
+  locationUnverified     Boolean     @default(false)
+  noRequirementReason    String?
+  revisitAfter           String?
+  emailUnavailableReason String?
+  collaborationType      String?
+  collaborationDetails   String?
+  autoClosedAt           DateTime?
+  emailCorrectionRequired Boolean @default(false)
+  emailCorrectionReason   String?
+  emailCorrectionNotifiedAt DateTime?
+  emailLastCorrectedAt    DateTime?
+
+  locations        VisitLocation[]
+  photos           VisitPhoto[]
+  hourlyActivities HourlyActivity[]
+
+  lead        Lead?
+  requirement Requirement?
+  opportunity Opportunity?
+  followups   FollowUp[]
+  emails      EmailLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, visitDate])
+  @@index([companyId, checkInAt])
+  @@index([status])
+  @@index([assignmentId])
+}
+
+model WorkAssignment {
+  id           String           @id @default(uuid())
+  companyId    String
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignedToId String
+  assignedTo   User             @relation("AssignedTo", fields: [assignedToId], references: [id])
+  assignedById String
+  assignedBy   User             @relation("AssignedBy", fields: [assignedById], references: [id])
+  title        String
+  description  String?
+  scheduledAt  DateTime
+  dueAt        DateTime?
+  status       AssignmentStatus @default(ASSIGNED)
+  visits       Visit[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([assignedToId, scheduledAt, status])
+  @@index([companyId])
+}
+
+model HourlyActivity {
+  id         String         @id @default(uuid())
+  visitId    String
+  visit      Visit          @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  status     ActivityStatus
+  note       String?
+  latitude   Decimal?
+  longitude  Decimal?
+  accuracyM  Decimal?
+  capturedAt DateTime       @default(now())
+
+  @@index([visitId, capturedAt])
+  @@index([userId, capturedAt])
+}
+
+model VisitLocation {
+  id         String       @id @default(uuid())
+  visitId    String
+  visit      Visit        @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  latitude   Decimal
+  longitude  Decimal
+  accuracyM  Decimal
+  capturedAt DateTime     @default(now())
+  kind       LocationKind
+
+  @@index([visitId])
+}
+
+model VisitPhoto {
+  id         String    @id @default(uuid())
+  visitId    String
+  visit      Visit     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  fileUrl    String
+  photoType  PhotoType
+  uploadedBy String
+  createdAt  DateTime  @default(now())
+
+  @@index([visitId])
+}
+
+model Lead {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  visitId String @unique
+  visit   Visit  @relation(fields: [visitId], references: [id])
+
+  ownerId String
+  status  LeadQuality?
+
+  requirements Requirement?
+  opportunity  Opportunity?
+  followups    FollowUp[]
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Requirement {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  visitId String @unique
+  visit   Visit  @relation(fields: [visitId], references: [id])
+
+  leadId String @unique
+  lead   Lead   @relation(fields: [leadId], references: [id])
+
+  projectType String?
+  description String
+  timeline    String?
+
+  budgetDiscussed Boolean?
+  budgetMin       Decimal?
+  budgetMax       Decimal?
+
+  opportunity Opportunity?
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+}
+
+model Opportunity {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  visitId String? @unique
+  visit   Visit?  @relation(fields: [visitId], references: [id])
+
+  leadId String @unique
+  lead   Lead   @relation(fields: [leadId], references: [id])
+
+  requirementId String?      @unique
+  requirement   Requirement? @relation(fields: [requirementId], references: [id])
+
+  ownerId     String
+  name        String
+  projectType String?
+
+  estimatedValue Decimal?
+  probability    Int?
+
+  stage OpportunityStage @default(NEW)
+
+  wonAt       DateTime?
+  lostAt      DateTime?
+  lostReason  String?
+  reengageAt  DateTime?
+
+  followups  FollowUp[]
+  quotations Quotation[]
+  emails     EmailLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stage, ownerId])
+  @@index([companyId])
+}
+
+model FollowUp {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id])
+
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  visitId String?
+  visit   Visit?  @relation(fields: [visitId], references: [id])
+
+  assignedTo String
+  user       User   @relation("FollowUpAssignee", fields: [assignedTo], references: [id])
+
+  originalOwnerId String
+  originalOwner   User    @relation("FollowUpOwner", fields: [originalOwnerId], references: [id])
+  delegatedToId   String?
+  delegatedTo     User?   @relation("FollowUpDelegatee", fields: [delegatedToId], references: [id])
+  completedById   String?
+  completedBy     User?   @relation("FollowUpCompleter", fields: [completedById], references: [id])
+
+  type        FollowUpType
+  scheduledAt DateTime
+
+  reminderOffsetMinutes Int @default(60)
+
+  purpose String
+  status  FollowUpStatus @default(SCHEDULED)
+
+  outcome               String?
+  handoverNotes         String?
+  acceptedAt            DateTime?
+  declinedAt            DateTime?
+  declineReason         String?
+  bookingRequestedAt    DateTime?
+  clientConfirmedAt     DateTime?
+  quotationRequestedAt  DateTime?
+  completedAt           DateTime?
+  returnedAt            DateTime?
+  remindedAt            DateTime?
+  reminderEmailQueuedAt DateTime?
+  aiCallEnabled         Boolean   @default(false)
+  aiCallConsent         Boolean   @default(false)
+  aiCallOffsetMinutes   Int       @default(60)
+  aiCallQueuedAt        DateTime?
+  overdueAt             DateTime?
+  closedAt              DateTime?
+
+  nextFollowupId String?
+  createdBy      String
+  aiCalls        AiCallLog[]
+  booking        MeetingBooking?
+
+  createdAt DateTime @default(now())
+
+  @@index([assignedTo, scheduledAt, status])
+  @@index([originalOwnerId, scheduledAt, status])
+  @@index([delegatedToId, scheduledAt, status])
+  @@index([companyId, scheduledAt])
+  @@index([visitId])
+  @@index([leadId])
+  @@index([opportunityId])
+}
+
+model MeetingBooking {
+  id String @id @default(uuid())
+
+  followUpId String   @unique
+  followUp   FollowUp @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+
+  tokenHash      String        @unique
+  status         BookingStatus @default(OPEN)
+  availableSlots Json
+  timezone       String        @default("Asia/Kolkata")
+  expiresAt      DateTime
+  selectedSlot   DateTime?
+  clientName     String?
+  clientEmail    String?
+  clientNote     String?
+  bookedAt       DateTime?
+  createdBy      String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status, expiresAt])
+  @@index([selectedSlot])
+}
+
+model AiCallLog {
+  id String @id @default(uuid())
+
+  followUpId String
+  followUp   FollowUp @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id])
+  contactId  String?
+  contact    Contact? @relation(fields: [contactId], references: [id])
+
+  toPhone        String
+  script         String
+  status         AiCallStatus @default(QUEUED)
+  providerCallId String?
+  attempts       Int          @default(0)
+  lastError      String?
+  scheduledFor   DateTime
+  initiatedAt    DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status, scheduledFor])
+  @@index([followUpId])
+  @@index([companyId, createdAt])
+}
+
+model Quotation {
+  id String @id @default(uuid())
+
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+
+  version Int             @default(1)
+  status  QuotationStatus @default(DRAFT)
+
+  totalAmount Decimal?
+  subtotalAmount Decimal?
+  discountPercent Decimal? @default(0)
+  discountAmount Decimal? @default(0)
+  taxPercent Decimal? @default(18)
+  taxAmount Decimal? @default(0)
+  documentUrl String?
+  paymentTerms String?
+  deliveryTimeline String?
+  notes String?
+
+  clientDecision  QuotationDecision @default(PENDING)
+  clientFeedback  String?
+  decisionReason  String?
+  discussionOwnerId String?
+  validUntil      DateTime?
+  responseTokenHash String? @unique
+  responseTokenExpiresAt DateTime?
+  responseTokenUsedAt DateTime?
+
+  approvedAt DateTime?
+  sentAt     DateTime?
+  respondedAt DateTime?
+  acceptedAt DateTime?
+  rejectedAt DateTime?
+
+  createdBy String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items QuotationItem[]
+
+  @@index([opportunityId])
+}
+
+model QuotationItem {
+  id String @id @default(uuid())
+
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  amount      Decimal
+
+  @@index([quotationId])
+}
+
+model EmailTemplate {
+  id      String  @id @default(uuid())
+  name    String  @unique
+  subject String
+  body    String
+  active  Boolean @default(true)
+}
+
+model EmailLog {
+  id String @id @default(uuid())
+
+  template String
+  to       String
+  from     String
+  subject  String
+  body     String @default("")
+  voiceScript String?
+  attachmentUrl String?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  visitId String?
+  visit   Visit? @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  sentBy            String?
+  status            String    @default("QUEUED")
+  providerMessageId String?
+  sentAt            DateTime?
+  attempts          Int       @default(0)
+  lastError         String?
+  nextAttemptAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, createdAt])
+  @@index([contactId])
+  @@index([opportunityId])
+  @@index([visitId])
+  @@index([status])
+}
+
+model ActivityLog {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  event    String
+  payload  Json
+  actorId  String?
+  entity   String?
+  entityId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId, createdAt])
+}
+
+model Notification {
+  id        String             @id @default(uuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String
+  link      String?
+  status    NotificationStatus @default(UNREAD)
+  createdAt DateTime           @default(now())
+  readAt    DateTime?
+
+  @@index([userId, status, createdAt])
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  actorId String
+  actor   User   @relation(fields: [actorId], references: [id])
+
+  entity   String
+  entityId String
+  action   String
+
+  before Json?
+  after  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entity, entityId])
+}
