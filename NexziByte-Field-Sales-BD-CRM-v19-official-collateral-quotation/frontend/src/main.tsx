@@ -67,7 +67,7 @@ import "./company-ui.css";
 import "./premium.css";
 import "./reference-saas.css";
 
-const API = "http://localhost:4000/api";
+const API = "https://yeshwanth-7p6a.onrender.com/api";
 async function api(path: string, options: any = {}) {
   const request = () =>
     fetch(API + path, {
