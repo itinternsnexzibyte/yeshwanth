@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
-import helmet from "helmet";
+import helmetImport from "helmet";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
+import rateLimitImport from "express-rate-limit";
 import argon2 from "argon2";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -16,6 +16,9 @@ import { clearSession, issueSession, requireAuth, requireCsrf, requireRole } fro
 import { calculateQuotation, serialiseCalculation } from "./calculation.js";
 import { CATALOGUE_DETAILS, IMAGE_KEYS, imageKeyFor, parseDetails } from "./productCatalogue.js";
 import { ACCENT_PALETTE, PDF_LAYOUT_VERSION, buildDocx, buildPdf } from "./documents.js";
+
+const helmet = ((helmetImport as any).default ?? helmetImport) as typeof helmetImport.default;
+const rateLimit = ((rateLimitImport as any).default ?? rateLimitImport) as typeof rateLimitImport.default;
 
 const app = express();
 app.set("trust proxy", 1);
