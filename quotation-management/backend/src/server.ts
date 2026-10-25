@@ -17,8 +17,8 @@ import { calculateQuotation, serialiseCalculation } from "./calculation.js";
 import { CATALOGUE_DETAILS, IMAGE_KEYS, imageKeyFor, parseDetails } from "./productCatalogue.js";
 import { ACCENT_PALETTE, PDF_LAYOUT_VERSION, buildDocx, buildPdf } from "./documents.js";
 
-const helmet = ((helmetImport as any).default ?? helmetImport) as typeof helmetImport.default;
-const rateLimit = ((rateLimitImport as any).default ?? rateLimitImport) as typeof rateLimitImport.default;
+const helmet = ((helmetImport as any).default ?? helmetImport) as (opts?: any) => any;
+const rateLimit = ((rateLimitImport as any).default ?? rateLimitImport) as (opts?: any) => any;
 
 const app = express();
 app.set("trust proxy", 1);
